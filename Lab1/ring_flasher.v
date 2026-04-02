@@ -1,31 +1,11 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
+// HCMUT 
+// Authors: Duc Hanh, Gia Huy, Phuong Vu, Gia Hung, Minh Huan
 // 
-// Create Date: 04/02/2026 02:11:48 PM
+// Create Date: 04/02/2026 03:10:10 PM
 // Design Name: 
-// Module Name: Ring_Flasher
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 04/02/2026 02:11:48 PM
-// Design Name: 
-// Module Name: Ring_Flasher
+// Module Name: ring_flasher
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -39,37 +19,33 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 module Ring_Flasher(
-    input  logic        clk,
-    input  logic        reset_n,
-    input  logic        repeat_i,
-    output logic [15:0] led
+    input  wire        clk,
+    input  wire        reset_n,
+    input  wire        repeat_i,
+    output reg [15:0]  led
 );
 
     //--------------------------------
-    // STATE DEFINITION
+    // STATE
     //--------------------------------
-    typedef enum logic [2:0] {
-        IDLE,
-        ON_CW,
-        OFF_CCW,
-        TOGGLE_CW,
-        TOGGLE_CCW,
-        DONE
-    } state_t;
+    parameter IDLE        = 2'd0;
+    parameter TOGGLE_CW   = 2'd1;
+    parameter TOGGLE_CCW  = 2'd2;
+    parameter DONE        = 2'd3;
 
-    state_t state, next_state;
+    reg [1:0] state, next_state;
 
     //--------------------------------
     // INTERNAL SIGNALS
     //--------------------------------
-    logic [4:0] idx;
-    logic [3:0] step_cnt;
-    logic [1:0] cycle_cnt;
+    reg [3:0] idx;
+    reg [3:0] step_cnt;
+    reg [3:0] cycle_cnt;
 
     //--------------------------------
     // STATE REGISTER
     //--------------------------------
-    always_ff @(posedge clk or negedge reset_n) begin
+    always @(posedge clk or negedge reset_n) begin
         if (!reset_n)
             state <= IDLE;
         else
@@ -77,128 +53,94 @@ module Ring_Flasher(
     end
 
     //--------------------------------
-    // NEXT STATE LOGIC
+    // NEXT STATE
     //--------------------------------
-    always_comb begin
+    always @(*) begin
         next_state = state;
 
         case (state)
             IDLE:
-                if (repeat_i) begin
-                    next_state = ON_CW;
-                end
+                if (repeat_i)
+                    next_state = TOGGLE_CW;
 
-            //--------------------------------
-            ON_CW:
-                if (step_cnt == 7)
-                    next_state = OFF_CCW;
-
-            //--------------------------------
-            OFF_CCW:
-                if (step_cnt == 3) begin
-                    if (cycle_cnt == 2)
-                        next_state = TOGGLE_CW;
-                    else
-                        next_state = ON_CW;
-                end
-
-            //--------------------------------
             TOGGLE_CW:
-                if (step_cnt == 7)
+                if (step_cnt == 4'd7)
                     next_state = TOGGLE_CCW;
 
-            //--------------------------------
             TOGGLE_CCW:
-                if (step_cnt == 3) begin
-                    if (led == 16'b0)
+                if (step_cnt == 4'd3) begin
+                    if (!repeat_i && cycle_cnt == 7)   //add logic repeat here
                         next_state = DONE;
                     else
                         next_state = TOGGLE_CW;
                 end
 
-            //--------------------------------
             DONE:
-                if (repeat_i)
-                    next_state = ON_CW;
+                if (repeat_i)   //???
+                    next_state = TOGGLE_CW;
                 else
                     next_state = IDLE;
         endcase
     end
 
     //--------------------------------
-    // DATAPATH + OUTPUT
+    // DATAPATH
     //--------------------------------
-    always_ff @(posedge clk or negedge reset_n) begin
+    wire [3:0] prev_idx = (idx == 0) ? 4'd15 : idx - 1;
+
+    //--------------------------------
+    // MAIN LOGIC
+    //--------------------------------
+    always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             led       <= 16'b0;
             idx       <= 4'd0;
             step_cnt  <= 4'd0;
-            cycle_cnt <= 2'd0;
+            cycle_cnt <= 4'd0;
         end else begin
 
             case (state)
 
                 //--------------------------------
+                //IDLE
+                //--------------------------------
                 IDLE: begin
                     led       <= 16'b0;
                     idx       <= 4'd0;
                     step_cnt  <= 4'd0;
-                    cycle_cnt <= 2'd0;
+                    cycle_cnt <= 4'd0;
                 end
 
                 //--------------------------------
-                // TURN ON (CW)
+                // CW
                 //--------------------------------
-                ON_CW: begin
-                    led[idx] <= 1'b1;
+                TOGGLE_CW: begin
+                    led[idx] <= ~led[idx]; 
+
                     idx      <= idx + 1;
                     step_cnt <= step_cnt + 1;
 
-                    if (step_cnt == 7) begin
+                    if (step_cnt == 4'd7)
                         step_cnt <= 0;
-                    end
                 end
 
                 //--------------------------------
-                // TURN OFF (CCW)
+                // CCW
                 //--------------------------------
-                OFF_CCW: begin
-                    led[idx-1] <= 1'b0;   // FIX l?ch idx
-                    idx        <= idx - 1;
-                    step_cnt   <= step_cnt + 1;
+                TOGGLE_CCW: begin
+                    led[prev_idx] <= ~led[prev_idx];
 
-                    if (step_cnt == 3) begin
-                        step_cnt  <= 0;
+                    idx      <= prev_idx;
+                    step_cnt <= step_cnt + 1;
+
+                    if (step_cnt == 4'd3) begin
+                        step_cnt <= 0;
                         cycle_cnt <= cycle_cnt + 1;
                     end
                 end
 
                 //--------------------------------
-                // TOGGLE (CW)
-                //--------------------------------
-                TOGGLE_CW: begin
-                    led[idx] <= ~led[idx];
-                    idx      <= idx + 1;
-                    step_cnt <= step_cnt + 1;
-
-                    if (step_cnt == 7) begin
-                        step_cnt <= 0;
-                    end
-                end
-
-                //--------------------------------
-                // TOGGLE (CCW)
-                //--------------------------------
-                TOGGLE_CCW: begin
-                    led[idx-1] <= ~led[idx-1];  // FIX l?ch idx
-                    idx        <= idx - 1;
-                    step_cnt   <= step_cnt + 1;
-
-                    if (step_cnt == 3) begin
-                        step_cnt <= 0;
-                    end
-                end
-
+                //DONE
                 //--------------------------------
                 DONE: begin
                     led <= 16'b0;

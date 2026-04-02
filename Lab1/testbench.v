@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
+// HCMUT 
+// Authors: Duc Hanh, Gia Huy, Phuong Vu, Gia Hung, Minh Huan
 // 
 // Create Date: 04/02/2026 02:41:38 PM
 // Design Name: 
@@ -50,7 +50,11 @@ module tb_ring_flasher;
 
         #10;
         repeat_i = 1;
-        #500;
+        
+        #40;
+        repeat_i = 0;
+        
+        #1000;
 
         $stop;
     end
