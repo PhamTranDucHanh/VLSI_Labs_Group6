@@ -1,22 +1,22 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// HCMUT 
+// HCMUT
 // Authors: Duc Hanh, Gia Huy, Phuong Vu, Gia Hung, Minh Huan
-// 
+//
 // Create Date: 04/02/2026 02:41:38 PM
-// Design Name: 
+// Design Name:
 // Module Name: testRingFlasher
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
+// Project Name:
+// Target Devices:
+// Tool Versions:
+// Description:
+//
+// Dependencies:
+//
 // Revision:
 // Revision 0.01 - File Created
 // Additional Comments:
-// 
+//
 //////////////////////////////////////////////////////////////////////////////////
 
 module tb_ring_flasher;
@@ -50,18 +50,35 @@ module tb_ring_flasher;
 
         #10;
         repeat_i = 1;
-        
-        #40;
+        #1050
         repeat_i = 0;
-        
-        #1000;
+        #1070
+        repeat_i = 1;
+        #10
+        repeat_i = 0;
+        #200
+        reset_n = 0;
+        #20
+        reset_n = 1;
+        #30
+        repeat_i = 1;
+        #20
+        repeat_i = 0;
+
+        #3000;
 
         $stop;
+        $finish;
     end
     // MONITOR
     initial begin
         $monitor("Time=%0t | state=%0d | idx=%0d | led=%b",
                   $time, uut.state, uut.idx, led);
+    end
+
+    initial begin
+        $recordfile ("waves");
+        $recordvars ("depth=0", tb_ring_flasher);
     end
 
 endmodule

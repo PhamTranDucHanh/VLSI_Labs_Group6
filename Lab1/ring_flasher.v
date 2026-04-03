@@ -31,7 +31,6 @@ module Ring_Flasher(
     parameter IDLE        = 2'd0;
     parameter TOGGLE_CW   = 2'd1;
     parameter TOGGLE_CCW  = 2'd2;
-    parameter DONE        = 2'd3;
 
     reg [1:0] state, next_state;
 
@@ -69,17 +68,18 @@ module Ring_Flasher(
 
             TOGGLE_CCW:
                 if (step_cnt == 4'd3) begin
-                    if (!repeat_i && cycle_cnt == 7)   //add logic repeat here
-                        next_state = DONE;
+                    if (cycle_cnt == 4'd8) begin
+                        if (repeat_i) begin
+                            next_state = TOGGLE_CW;
+                            cycle_cnt = 4'd0;
+                        end
+                        else
+                            next_state = IDLE;
+                    end
                     else
                         next_state = TOGGLE_CW;
                 end
 
-            DONE:
-                if (repeat_i)   //???
-                    next_state = TOGGLE_CW;
-                else
-                    next_state = IDLE;
         endcase
     end
 
@@ -96,7 +96,7 @@ module Ring_Flasher(
             led       <= 16'b0;
             idx       <= 4'd0;
             step_cnt  <= 4'd0;
-            cycle_cnt <= 4'd0;
+            cycle_cnt <= 4'd1;
         end else begin
 
             case (state)
@@ -108,7 +108,7 @@ module Ring_Flasher(
                     led       <= 16'b0;
                     idx       <= 4'd0;
                     step_cnt  <= 4'd0;
-                    cycle_cnt <= 4'd0;
+                    cycle_cnt <= 4'd1;
                 end
 
                 //--------------------------------
@@ -139,12 +139,6 @@ module Ring_Flasher(
                     end
                 end
 
-                //--------------------------------
-                //DONE
-                //--------------------------------
-                DONE: begin
-                    led <= 16'b0;
-                end
 
             endcase
         end
